@@ -134,8 +134,9 @@ ORDER BY b.publication_year DESC
 SELECT b.title, CONCAT(a.first_name, " ", a.last_name) AS author_name, b.publication_year FROM books b
 INNER JOIN authors a ON b.author_id = a.author_id
 ;
--- Hämta alla böcker som publicerats efter det senaste publiceringsåret av böcker som kom ut före år 2000.
-
+-- Hämta alla böcker som publicerades efter den första boken som kom ut efter år 2000.
+SELECT * FROM books WHERE books.publication_year > (SELECT MIN(books.publication_year) FROM books WHERE books.publication_year > 2000)
+;
 -- Uppdatera författarens namn i tabellen.
 UPDATE authors SET first_name = "Stephen" WHERE author_id = "10";
 SELECT * FROM book_genre
