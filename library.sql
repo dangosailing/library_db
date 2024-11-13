@@ -181,10 +181,16 @@ INNER JOIN books b ON bg.book_id = b.book_id
 GROUP BY genre_name 
 ;
 -- Genomsnittligt antal böcker per författare som är publicerade efter år 2000.
--- DS: ska dubbelkolla, inte säker på hur rätt avg ligger här
-SELECT avg(b.book_id / a.author_id)  AS avg_books_per_author_after_2000 FROM authors a 
-INNER JOIN books b ON a.author_id = b.author_id
-WHERE b.publication_year > 2000
+-- DS: skapar en sub-query för att få fram mängden böcker grupperad efter författare
+-- efter pr 2000 och kör sedan AVG på resultet
+SELECT AVG (num_books_after_2000) AS books_per_auth_post_2000
+FROM (
+SELECT count(books.book_id) AS num_books_after_2000
+FROM books 
+WHERE books.publication_year > 2000
+GROUP BY books.author_id
+) 
+AS books_after_2000
 ;
 -- Skapa en stored procedure som tar ett årtal som parameter och returnerar alla böcker som publicerats efter detta år. Döp den till get_books_after_year.
 -- DS: "variabeln" vi lagrar input_datumet i via IN blir här input_publication_year som sedan används i WHERE clausen. Viktigt att sätta 
