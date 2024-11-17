@@ -1,5 +1,5 @@
-USE library_db;
-
+USE library_db
+;
 -- Hämta alla böcker som publicerats före år 1950.
 SELECT b.title, b.publication_year FROM books b 
 WHERE publication_year < 1950
@@ -49,7 +49,7 @@ SET first_name = "Stefan"
 WHERE author_id = "10"
 ;
 -- Ta bort en bok från databasen.
--- DS: Måste ta bort book_genre poster för samma id först då denna har ett beroende på boken och kastar fel annars 
+-- DS: Måste ta bort book_genre poster för samma id först då denna har ett beroende på boken och kastar fel annars. 
 DELETE FROM book_genre 
 WHERE book_id = "9"
 ;
@@ -57,9 +57,11 @@ DELETE FROM books
 WHERE book_id = "9"
 ;
 -- Hämta alla böcker som publicerats efter år 2000 tillsammans med författarens namn, förlagets namn och genrerna.
--- DS: Utgår från den genre som en stark entitet och hoppas från denna till alla relevanta tabeller
+-- DS: Utgår från den genre som en stark entitet och "hoppar" från denna till alla relevanta tabeller via INNER JOIN 
+-- (som då innefattar alla kopplade/överlappande rows inom de kopplade tabellerna)
+-- Slår ihop first_name och last_name via CONCAT
 -- Använder en GROUP_CONCAT tillsammans med GROUP BY (på icke-aggregerade columns) för att 
--- slå ihop genre-blandningarna (ex. hunger games - Adventure och Dystopian) för bättre läsbarhet
+-- slå ihop raderna där en bok har två eller fler genrer till en rad för bättre läsbarhet.
 SELECT 
 b.title, 
 b.publication_year,
@@ -75,7 +77,7 @@ WHERE publication_year > 2000
 GROUP BY title, b.publication_year, p.name, author_name
 ;
 -- Visa författarnas fullständiga namn (förnamn och efternamn), titlarna på deras böcker och vilken genre böckerna tillhör.
--- DS: kör samma GROUP_CONCAT på genres som ovan med en GROUP BY grupperar på de icke-aggregerade kolumnerna
+-- DS: kör samma CONCAT för författarens namn samt GROUP_CONCAT på genres som ovan med en GROUP BY grupperar på de icke-aggregerade kolumnerna.
 SELECT 
 CONCAT(a.first_name, " ", a.last_name) AS author_name, 
 b.title, GROUP_CONCAT(g.genre_name) AS genre 
@@ -87,8 +89,8 @@ GROUP BY author_name, title
 ;
 -- Antalet böcker varje författare har skrivit, sorterat i fallande ordning.
 -- DS: Använder author table för författarens namn, JOIN:ar med books för att kunna
--- köra en COUNT på böcker i books via en gruppering på författarnamnet, 
--- via ORDER DESC så får vi det listat i fallande ordning
+-- köra en COUNT på böcker i tabellen books via en gruppering på författarnamnet. 
+-- Via ORDER BY ... DESC så får vi det listat i fallande ordning.
 SELECT 
 CONCAT(a.first_name, " ", a.last_name) AS author_name, 
 COUNT(b.book_id) AS number_of_published_books 
@@ -99,7 +101,8 @@ ORDER BY number_of_published_books
 DESC 
 ; 
 -- Antalet böcker inom varje genre.
--- DS: JOIN:ar genre med book_genre. Grupperar på genre_name för att kunna räkna mängden böcker via COUNT
+-- DS: JOIN:ar genre (för genre_namn) med book_genre (för att få ut mängd böcker per genre). 
+-- Grupperar på genre_name för att kunna räkna mängden böcker via COUNT.
 SELECT 
 genre_name, 
 COUNT(bg.book_id) AS books_in_genre 
@@ -108,8 +111,8 @@ INNER JOIN book_genre bg ON g.genre_id = bg.genre_id
 GROUP BY genre_name 
 ;
 -- Genomsnittligt antal böcker per författare som är publicerade efter år 2000.
--- DS: skapar en sub-query för att få fram en "derived table" för att få fram där mängden böcker grupperad efter författare (publiserade efter 2000)
--- Ger denna table ett alias så att vi kan använda AVG på den i vår SELECT för att få fram ett genomsnittsvärde
+-- DS: skapar en sub-query för att få fram ett "derived table" för att få fram där mängden böcker grupperad efter författare (publiserade efter 2000)
+-- Ger denna table ett alias så att vi kan använda AVG på den i vår SELECT för att slutligen få fram ett genomsnittsvärde.
 SELECT AVG (num_books_after_2000) AS avg_books_per_auth_after_2000
 FROM (
 SELECT count(books.book_id) AS num_books_after_2000
@@ -120,8 +123,9 @@ GROUP BY books.author_id
 AS books_after_2000
 ;
 -- Skapa en stored procedure som tar ett årtal som parameter och returnerar alla böcker som publicerats efter detta år. Döp den till get_books_after_year.
--- DS: "variabeln" vi lagrar input_datumet i via IN blir här input_publication_year som sedan används i WHERE clausen. Viktigt att sätta 
--- avsluta delimiters med semi-kolon när man är klar
+-- DS: Queryn hamnar mellan BEGIN och END, "variabeln" vi lagrar input_datumet i via IN blir här input_publication_year som sedan används i WHERE clausen.
+-- Via DELIMITER // byter vi ut semi-kolon:et temporärt så att inte vår statement terminerar processen efter vårt lagrade statement innan den blivit lagrad
+-- Viktig att använda den "nya" delimitern efter END samt att sätta tillbaka denna via DELIMITER ; efter vi är klara.
 DELIMITER //
 CREATE PROCEDURE get_books_after_year(IN input_publication_year INT)
 BEGIN
@@ -132,7 +136,7 @@ CALL get_books_after_year(2000)
 ;
 -- Skapa en view som visar varje författares fullständiga namn, bokens titel och publiceringsår. Döp den till author_books. 
 -- DS: Använder CREATE VIEW för att ett virtuellt table som vi kan refererra till för easy access utan att behöva köra denna query varje
--- gång vi vill komma åt denna data
+-- gång vi vill komma åt denna data. Påminner lite grann om ett table alias fast det inte är begäransat till sin specifika query.
 CREATE VIEW author_books
 AS SELECT 
 CONCAT(a.first_name, " ", a.last_name) AS author_name, 
