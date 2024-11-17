@@ -1,9 +1,11 @@
+USE library_db;
+
 -- Hämta alla böcker som publicerats före år 1950.
-SELECT * FROM books 
+SELECT b.title, b.publication_year FROM books b 
 WHERE publication_year < 1950
 ; 
 -- Hämta alla genrer som innehåller ordet "Classic".
-SELECT * FROM genres 
+SELECT genre_name FROM genres 
 WHERE genre_name 
 LIKE "%Classic%"
 ;
@@ -12,10 +14,10 @@ SELECT CONCAT(a.first_name, " ", last_name) AS author_name, b.title
 FROM authors a 
 INNER JOIN books b 
 ON a.author_id = b.author_id
-HAVING author_name = "Stephen King"
+HAVING author_name = "George Orwell"
 ;
 -- Hämta alla böcker som publicerats av ett specifikt förlag och ordna dem efter publiceringsår.
-SELECT b.title, p.name , b.publication_year
+SELECT b.title, p.name AS publisher, b.publication_year
 FROM books b 
 INNER JOIN publishers p 
 ON b.publisher_id = p.publisher_id
@@ -60,6 +62,7 @@ WHERE book_id = "9"
 -- slå ihop genre-blandningarna (ex. hunger games - Adventure och Dystopian) för bättre läsbarhet
 SELECT 
 b.title, 
+b.publication_year,
 CONCAT(a.first_name, " ", a.last_name) AS author_name, 
 p.name AS publisher, 
 GROUP_CONCAT(g.genre_name) AS genre 
@@ -69,10 +72,10 @@ INNER JOIN book_genre bg ON b.book_id = bg.book_id
 INNER JOIN genres g ON bg.genre_id = g.genre_id
 INNER JOIN publishers p ON b.publisher_id = p.publisher_id 
 WHERE publication_year > 2000
-GROUP BY title, p.name, author_name
+GROUP BY title, b.publication_year, p.name, author_name
 ;
 -- Visa författarnas fullständiga namn (förnamn och efternamn), titlarna på deras böcker och vilken genre böckerna tillhör.
--- DS: kör samma GROUP_CONCAT på genres som ovan med en GROUP BY som tar hänsyn till icke-aggregerade columns
+-- DS: kör samma GROUP_CONCAT på genres som ovan med en GROUP BY grupperar på de icke-aggregerade kolumnerna
 SELECT 
 CONCAT(a.first_name, " ", a.last_name) AS author_name, 
 b.title, GROUP_CONCAT(g.genre_name) AS genre 
@@ -107,7 +110,7 @@ GROUP BY genre_name
 -- Genomsnittligt antal böcker per författare som är publicerade efter år 2000.
 -- DS: skapar en sub-query för att få fram en "derived table" för att få fram där mängden böcker grupperad efter författare (publiserade efter 2000)
 -- Ger denna table ett alias så att vi kan använda AVG på den i vår SELECT för att få fram ett genomsnittsvärde
-SELECT AVG (num_books_after_2000) AS books_per_auth_post_2000
+SELECT AVG (num_books_after_2000) AS avg_books_per_auth_after_2000
 FROM (
 SELECT count(books.book_id) AS num_books_after_2000
 FROM books 
